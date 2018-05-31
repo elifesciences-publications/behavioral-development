@@ -1,6 +1,3 @@
-"""
-http://blog.minitab.com/blog/adventures-in-statistics-2/how-to-choose-the-best-regression-model
-"""
 ## load data
 
 from scipy.io import loadmat
@@ -35,7 +32,13 @@ atlas_keys = np.array([str(i.squeeze()) for i in atlas_keys[0]])
 expr_all_as_frac_of_lob = np.array([[(mouse.ravel()[lob.ravel()].astype(int)).sum() / lob.sum() for lob in atlas] for mouse in expr_raw])
 expr_all_as_frac_of_inj = np.array([[(mouse.ravel()[lob.ravel()].astype(int)).sum() / mouse.sum() for lob in atlas] for mouse in expr_raw])
 primary = np.array([np.argmax(e) for e in expr_all_as_frac_of_inj])
+primary_as_frac_of_lob = np.array([np.argmax(e) for e in expr_all_as_frac_of_lob])
 secondary = np.array([np.argsort(e)[-2] for e in expr_all_as_frac_of_inj])
+
+# categorizing (not necessary for most things so far)
+of_interest = np.array([1,3,5,6])
+primary_among_4_of_interest_coded = np.argmax(expr_all_as_frac_of_lob[:,of_interest], axis=1)
+primary_among_4_of_interest = of_interest[primary_among_4_of_interest]
 
 ## compute stat for paper text
 for lid,lstr in zip([5,6,1,3],['lob6','lob7','crus1','crus2']):
@@ -90,7 +93,7 @@ atlas_mod = np.array(atlas_mod)
 expr = np.array([[(mouse.ravel()[lob.ravel()].astype(int)).sum() / lob.sum() for lob in atlas_mod] for mouse in expr_raw])
 
 ## filters
-include_age = 0# 0=juv, 1=adult
+include_age = 1# 0=juv, 1=adult
 behav_exclude = [ 
                   'YM_AcqAbility',
                   #'YM_AcqInitialLR',
@@ -192,21 +195,25 @@ fig = pl.figure(figsize=(4,7))
 ax = fig.add_axes([.4,.1,.5,.8])
 
 # map 1: weights
-show = mat
+show = np.abs(mat) # NOTE abs
 amax = 4.47 #computed from juvenile, so colors match for both #np.max(np.abs(mat))
 #amax = np.max(np.abs(mat))
-vmin = -amax
+#vmin = -amax
+vmin = 0
 vmax = amax
-cmap = pl.cm.RdBu_r
+#cmap = pl.cm.RdBu_r
+cmap = pl.cm.Reds
 
 # discrete colorbar details
-bounds = np.linspace(-5,5,11)
+#bounds = np.linspace(-5,5,11)
+bounds = np.linspace(0,5,11)
 norm = mpl.colors.BoundaryNorm(bounds, cmap.N)
 
 pc = ax.pcolor(show, cmap=cmap, vmin=vmin, vmax=vmax, norm=norm)
 #cb = pl.colorbar(pc, ax=ax, label='Weight / SE', shrink=0.5, aspect=10)
-cb = pl.colorbar(pc, ax=ax, cmap=cmap, norm=norm, spacing='proportional', ticks=bounds, boundaries=bounds, format='%1i', shrink=0.5, aspect=10)
-cb.set_label('Weight/SE', fontsize='x-small', labelpad=3)
+#cb = pl.colorbar(pc, ax=ax, cmap=cmap, norm=norm, spacing='proportional', ticks=bounds, boundaries=bounds, format='%1i', shrink=0.5, aspect=10)
+cb = pl.colorbar(pc, ax=ax, cmap=cmap, norm=norm, spacing='proportional', ticks=bounds, boundaries=bounds, format='%0.1f', shrink=0.5, aspect=10)
+cb.set_label('| Weight / SE |', fontsize='x-small', labelpad=3)
 cb.ax.tick_params(labelsize='x-small')
 
 if include_age == 1:
@@ -216,7 +223,7 @@ if include_age == 1:
 for ri,row in enumerate(show):
     for ci,col in enumerate(row):
         pass
-        #ax.text(ci+.5, ri+.5, '{:0.1f}'.format(col), color='k', fontsize=8, ha='center', va='center')
+        ax.text(ci+.5, ri+.5, '{:0.1f}'.format(col), color='k', fontsize=8, ha='center', va='center')
 
 # signif
 sig = pmat < .05#/np.size(pmat)
